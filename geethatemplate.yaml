@@ -1,0 +1,61 @@
+resources:
+- repo: self
+queue:
+  name: Devlite-Microservices
+  demands: maven
+
+variables:
+  goals: 'clean'
+steps:
+- task: sonarsource.sonarqube.15B84CA1-B62F-4A2A-A403-89B77A063157.SonarQubePrepare@4
+  displayName: 'Prepare analysis on SonarQube'
+  inputs:
+    SonarQube: DevLiteSonarQube
+
+    scannerMode: Other
+
+    extraProperties: |
+     # Additional properties that will be passed to the scanner, 
+     # Put one key=value per line, example:
+     # sonar.exclusions=**/*.bin
+     
+
+
+- task: Maven@3
+  displayName: 'Maven build package and sonarscan'
+  inputs:
+    goals: '$(goals)'
+
+    javaHomeOption: Path
+
+    jdkDirectory: '/usr/lib/jvm/java-8-openjdk-amd64'
+
+    sonarQubeRunAnalysis: true
+
+    sqMavenPluginVersionChoice: pom
+
+
+- task: Maven@3
+  displayName: 'Maven upload artifacts'
+  inputs:
+    goals: deploy
+
+
+- task: sonarsource.sonarqube.291ed61f-1ee4-45d3-b1b0-bf822d9095ef.SonarQubePublish@4
+  displayName: 'Publish Quality Gate Result'
+
+
+- task: CopyFiles@2
+  displayName: 'Copy Files to: $(Build.ArtifactStagingDirectory)'
+  inputs:
+    SourceFolder: '$(system.defaultworkingdirectory)'
+
+    Contents: '**/*.war'
+
+    TargetFolder: '$(Build.ArtifactStagingDirectory)'
+
+
+- task: PublishBuildArtifacts@1
+  displayName: 'Publish Artifact: drop'
+
+
